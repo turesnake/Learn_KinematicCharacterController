@@ -1,0 +1,31 @@
+*.DS_Store
+*/.DS_Store
+*DailyLog
+/.vscode
+/build/
+/old/
+/Temp/
+
+# Visual Studio
+.vs/
+out/
+install/
+
+# unity
+/Library/
+/Logs/
+/obj/
+/Product/
+/_Tmp_OutAssetBundles/
+*.csproj
+*.sln
+
+# 本项目的 ab包放置地:
+/Assets/StreamingAssets/
+
+# 本地程序build 目的地
+/__B/
+
+# 程序 log 地:
+/__tprLogs__/
+
