@@ -21,7 +21,7 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
 
         private void Start()
         {
-            Cursor.lockState = CursorLockMode.Locked;
+            //Cursor.lockState = CursorLockMode.Locked;
 
             // Tell camera to follow transform
             OrbitCamera.SetFollowTransform(CameraFollowPoint);
@@ -33,10 +33,10 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-            }
+            // if (Input.GetMouseButtonDown(0))
+            // {
+            //     Cursor.lockState = CursorLockMode.Locked;
+            // }
 
             HandleCharacterInput();
         }
@@ -54,21 +54,19 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
             Vector3 lookInputVector = new Vector3(mouseLookAxisRight, mouseLookAxisUp, 0f);
 
             // Prevent moving the camera while the cursor isn't locked
-            if (Cursor.lockState != CursorLockMode.Locked)
-            {
-                lookInputVector = Vector3.zero;
-            }
+            // if (Cursor.lockState != CursorLockMode.Locked)
+            // {
+            //     lookInputVector = Vector3.zero;
+            // }
 
             // Input for zooming the camera (disabled in WebGL because it can cause problems)
             float scrollInput = -Input.GetAxis(MouseScrollInput);
-#if UNITY_WEBGL
-        scrollInput = 0f;
-#endif
 
             // Apply inputs to the camera
             OrbitCamera.UpdateWithInput(Time.deltaTime, scrollInput, lookInputVector);
 
             // Handle toggling zoom level
+            // 切换: 第一人称/第三人称
             if (Input.GetMouseButtonDown(1))
             {
                 OrbitCamera.TargetDistance = (OrbitCamera.TargetDistance == 0f) ? OrbitCamera.DefaultDistance : 0f;

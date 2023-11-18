@@ -67,8 +67,8 @@ namespace KinematicCharacterController
     public struct CharacterGroundingReport
     {
         public bool FoundAnyGround;
-        public bool IsStableOnGround;
-        public bool SnappingPrevented;
+        public bool IsStableOnGround; // 当前是否稳定在 地面上, 如果斜坡太陡角色正在滑落, 或者角色跳到了空中, 此值都为 false
+        public bool SnappingPrevented; // 防止 吸附 ?   猜测是主动把角色吸附在地面上
         public Vector3 GroundNormal;
         public Vector3 InnerGroundNormal;
         public Vector3 OuterGroundNormal;
@@ -114,7 +114,7 @@ namespace KinematicCharacterController
     }
 
     /// <summary>
-    /// Contains all the information from a hit stability evaluation
+    /// Contains all the information from a hit stability evaluation -- 碰撞稳定性评估
     /// </summary>
     public struct HitStabilityReport
     {
@@ -128,6 +128,7 @@ namespace KinematicCharacterController
         public bool ValidStepDetected;
         public Collider SteppedCollider;
 
+        // ledge: 凸缘, 角色可以在上面行走的 窄木条, 所以存在 "稳定性" 
         public bool LedgeDetected;
         public bool IsOnEmptySideOfLedge;
         public float DistanceFromLedge;
@@ -194,12 +195,12 @@ namespace KinematicCharacterController
 
         [Header("Grounding settings")]
         /// <summary>
-        /// Increases the range of ground detection, to allow snapping to ground at very high speeds
+        /// Increases the range of ground detection, to allow snapping to ground at very high speeds -- 在运动速度很高时, 也能贴着地面运动, (而不是飞出去)
         /// </summary>    
         [Tooltip("Increases the range of ground detection, to allow snapping to ground at very high speeds")]
         public float GroundDetectionExtraDistance = 0f;
         /// <summary>
-        /// Maximum slope angle on which the character can be stable
+        /// Maximum slope angle on which the character can be stable  -- 最大斜坡角度,  超过后 角色将无法保持稳定 (这里的表现是滑下去)
         /// </summary>    
         [Range(0f, 89f)]
         [Tooltip("Maximum slope angle on which the character can be stable")]
@@ -210,7 +211,7 @@ namespace KinematicCharacterController
         [Tooltip("Which layers can the character be considered stable on")]
         public LayerMask StableGroundLayers = -1;
         /// <summary>
-        /// Notifies the Character Controller when discrete collisions are detected
+        /// Notifies the Character Controller when discrete collisions are detected  -- 检测到 离散 碰撞 时通知角色控制器
         /// </summary>    
         [Tooltip("Notifies the Character Controller when discrete collisions are detected")]
         public bool DiscreteCollisionEvents = false;
@@ -228,7 +229,7 @@ namespace KinematicCharacterController
         [Tooltip("Maximum height of a step which the character can climb")]
         public float MaxStepHeight = 0.5f;
         /// <summary>
-        /// Can the character step up obstacles even if it is not currently stable?
+        /// Can the character step up obstacles even if it is not currently stable?  
         /// </summary>    
         [Tooltip("Can the character step up obstacles even if it is not currently stable?")]
         public bool AllowSteppingWithoutStableGrounding = false;
@@ -241,7 +242,7 @@ namespace KinematicCharacterController
 
         [Header("Ledge settings")]
         /// <summary>
-        /// Handles properly detecting ledge information and grounding status, but has a performance cost.
+        /// Handles properly detecting ledge information and grounding status, but has a performance cost.  -- 凸缘 和高差处理
         /// </summary>
         [Tooltip("Handles properly detecting ledge information and grounding status, but has a performance cost.")]
         public bool LedgeAndDenivelationHandling = true;
@@ -256,7 +257,7 @@ namespace KinematicCharacterController
         [Tooltip("Prevents snapping to ground on ledges beyond a certain velocity")]
         public float MaxVelocityForLedgeSnap = 0f;
         /// <summary>
-        /// The maximun downward slope angle change that the character can be subjected to and still be snapping to the ground
+        /// The maximun downward slope angle change that the character can be subjected to and still be snapping to the ground  -- 角色可以承受并仍然捕捉到地面的最大向下倾斜角度变化
         /// </summary>    
         [Tooltip("The maximun downward slope angle change that the character can be subjected to and still be snapping to the ground")]
         [Range(1f, 180f)]
@@ -277,7 +278,7 @@ namespace KinematicCharacterController
         [Tooltip("Mass used for pushing bodies")]
         public float SimulatedCharacterMass = 1f;
         /// <summary>
-        /// Determines if the character preserves moving platform velocities when de-grounding from them
+        /// Determines if the character preserves moving platform velocities when de-grounding from them  -- 确定角色在脱离平台时是否保持移动平台的速度
         /// </summary>
         [Tooltip("Determines if the character preserves moving platform velocities when de-grounding from them")]
         public bool PreserveAttachedRigidbodyMomentum = true;
@@ -297,7 +298,7 @@ namespace KinematicCharacterController
 
         [Header("Other settings")]
         /// <summary>
-        /// How many times can we sweep for movement per update
+        /// How many times can we sweep for movement per update -- 每次 update 我们可以 扫描 移动 多少次
         /// </summary>
         [Tooltip("How many times can we sweep for movement per update")]
         public int MaxMovementIterations = 5;
@@ -308,16 +309,17 @@ namespace KinematicCharacterController
         public int MaxDecollisionIterations = 1;
         /// <summary>
         /// Checks for overlaps before casting movement, making sure all collisions are detected even when already intersecting geometry (has a performance cost, but provides safety against tunneling through colliders)
+        /// 在投射移动之前检查重叠，确保即使已经相交的几何体也能检测到所有碰撞（具有性能成本，但可以安全地穿过碰撞器）
         /// </summary>
         [Tooltip("Checks for overlaps before casting movement, making sure all collisions are detected even when already intersecting geometry (has a performance cost, but provides safety against tunneling through colliders)")]
         public bool CheckMovementInitialOverlaps = true;
         /// <summary>
-        /// Sets the velocity to zero if exceed max movement iterations
+        /// Sets the velocity to zero if exceed max movement iterations -- 如果超过最大移动迭代次数，则将速度设置为零
         /// </summary>
         [Tooltip("Sets the velocity to zero if exceed max movement iterations")]
         public bool KillVelocityWhenExceedMaxMovementIterations = true;
         /// <summary>
-        /// Sets the remaining movement to zero if exceed max movement iterations
+        /// Sets the remaining movement to zero if exceed max movement iterations -- 如果超过最大移动迭代次数，则将剩余移动设置为零
         /// </summary>
         [Tooltip("Sets the remaining movement to zero if exceed max movement iterations")]
         public bool KillRemainingMovementWhenExceedMaxMovementIterations = true;
@@ -344,7 +346,7 @@ namespace KinematicCharacterController
         public Transform Transform { get { return _transform; } }
         private Transform _transform;
         /// <summary>
-        /// The character's goal position in its movement calculations (always up-to-date during the character update phase)
+        /// The character's goal position in its movement calculations (always up-to-date (最新的) during the character update phase)
         /// </summary>
         public Vector3 TransientPosition { get { return _transientPosition; } }
         private Vector3 _transientPosition;
@@ -762,7 +764,7 @@ namespace KinematicCharacterController
         /// - Initializing all values for update
         /// - Handling MovePosition calls
         /// - Solving initial collision overlaps
-        /// - Ground probing
+        /// - Ground probing  -- 地面探测
         /// - Handle detecting potential interactable rigidbodies
         /// </summary>
         public void UpdatePhase1(float deltaTime)
@@ -1301,7 +1303,7 @@ namespace KinematicCharacterController
                         // Find all scenarios where ground snapping should be canceled
                         groundingReport.SnappingPrevented = !IsStableWithSpecialCases(ref groundHitStabilityReport, BaseVelocity);
 
-                        groundingReport.IsStableOnGround = true;
+                        groundingReport.IsStableOnGround = true;  // 说明 角色正稳稳地踩在地上
 
                         // Ground snapping
                         if (!groundingReport.SnappingPrevented)
@@ -1336,6 +1338,7 @@ namespace KinematicCharacterController
 
         /// <summary>
         /// Forces the character to unground itself on its next grounding update
+        ///  通常在起跳帧设置,  以便在之后的几帧 不主动执行 "snapped to the ground"; 不然角色会贴在地上跳不起来
         /// </summary>
         public void ForceUnground(float time = 0.1f)
         {
@@ -1350,12 +1353,14 @@ namespace KinematicCharacterController
 
         /// <summary>
         /// Returns the direction adjusted to be tangent to a specified surface normal relatively to the character's up direction.
-        /// Useful for reorienting a direction on a slope without any lateral deviation in trajectory
+        /// Useful for reorienting a direction on a slope without any lateral deviation(横向偏差 ; 横向偏移量) in trajectory(轨道)
+        ///    得到 一个方向 在一个平面上的 切方向 (沿着这个平面运动的方向) 
+        ///    得到的结果 归一化 了
         /// </summary>
         public Vector3 GetDirectionTangentToSurface(Vector3 direction, Vector3 surfaceNormal)
         {
-            Vector3 directionRight = Vector3.Cross(direction, _characterUp);
-            return Vector3.Cross(surfaceNormal, directionRight).normalized;
+            Vector3 directionRight = Vector3.Cross(direction, _characterUp); // 叉乘写反了
+            return Vector3.Cross(surfaceNormal, directionRight).normalized; // 叉乘写反了
         }
 
         /// <summary>

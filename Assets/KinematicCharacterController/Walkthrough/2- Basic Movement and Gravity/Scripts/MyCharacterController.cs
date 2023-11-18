@@ -32,13 +32,33 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
         public Vector3 Gravity = new Vector3(0, -30f, 0);
         public Transform MeshRoot;
 
-        private Vector3 _moveInputVector;
-        private Vector3 _lookInputVector;
+
+        public Transform baseCubePrefab;
+
+
+        private Vector3 _moveInputVector; // 玩家输入的 本帧 前进方向 (xz平面版)  归一化了
+        private Vector3 _lookInputVector; // 相机的 本帧 观察方向 (xz平面版) 归一化了
+
+
+        Transform helpTF, pole1TF;
+
         
         private void Start()
         {
             // Assign to motor
             Motor.CharacterController = this;
+
+            Debug.Assert(baseCubePrefab);
+            {
+                var newgo = new GameObject("helpTF");
+                helpTF = newgo.transform;
+            }
+            {
+                var newgo = Instantiate( baseCubePrefab );
+                pole1TF = newgo.transform;
+            }
+
+
         }
 
         /// <summary>
@@ -97,27 +117,38 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
             Vector3 targetMovementVelocity = Vector3.zero;
             if (Motor.GroundingStatus.IsStableOnGround)
             {
-                // Reorient source velocity on current ground slope (this is because we don't want our smoothing to cause any velocity losses in slope changes)
+                // ----- 在地面上 -----
+
+                // Reorient source velocity on current ground slope (this is because we don't want our smoothing to cause any velocity losses in slope changes) 
+                // (这是因为我们不希望我们的平滑在坡度变化中造成任何速度损失)
                 currentVelocity = Motor.GetDirectionTangentToSurface(currentVelocity, Motor.GroundingStatus.GroundNormal) * currentVelocity.magnitude;
 
                 // Calculate target velocity
-                Vector3 inputRight = Vector3.Cross(_moveInputVector, Motor.CharacterUp);
-                Vector3 reorientedInput = Vector3.Cross(Motor.GroundingStatus.GroundNormal, inputRight).normalized * _moveInputVector.magnitude;
+                // 其实就是让 前进方向 受到 角色up 方向的影响;
+                Vector3 inputRight = Vector3.Cross(_moveInputVector, Motor.CharacterUp); // 叉乘写反了, 其实是 left
+                Vector3 reorientedInput = Vector3.Cross(Motor.GroundingStatus.GroundNormal, inputRight).normalized * _moveInputVector.magnitude; // 叉乘写反了
+
+                //DrawPole( pole1TF, transform.position, transform.position + inputRight * 2f ); // debug tpr
+
                 targetMovementVelocity = reorientedInput * MaxStableMoveSpeed;
 
                 // Smooth movement Velocity
+                // 很粗暴,  就是让原来的运动速度向量, 平滑地贴合到 玩家输入想要的运动速度向量
                 currentVelocity = Vector3.Lerp(currentVelocity, targetMovementVelocity, 1 - Mathf.Exp(-StableMovementSharpness * deltaTime));
             }
             else
             {
+                // ----- 在空中, 或正从陡峭的斜坡滑下来 -----
+
                 // Add move input
                 if (_moveInputVector.sqrMagnitude > 0f)
                 {
                     targetMovementVelocity = _moveInputVector * MaxAirMoveSpeed;
 
-                    // Prevent climbing on un-stable slopes with air movement
+                    // Prevent climbing on un-stable slopes with air movement - 防止攀爬
                     if (Motor.GroundingStatus.FoundAnyGround)
                     {
+                        // 垂直 阻碍 法线
                         Vector3 perpenticularObstructionNormal = Vector3.Cross(Vector3.Cross(Motor.CharacterUp, Motor.GroundingStatus.GroundNormal), Motor.CharacterUp).normalized;
                         targetMovementVelocity = Vector3.ProjectOnPlane(targetMovementVelocity, perpenticularObstructionNormal);
                     }
@@ -171,5 +202,30 @@ namespace KinematicCharacterController.Walkthrough.BasicMovement
         public void OnDiscreteCollisionDetected(Collider hitCollider)
         {
         }
+
+
+
+
+
+
+        // debug
+        void DrawPole( Transform tf_, Vector3 srcPos_, Vector3 dstPos_ ) 
+        {
+            // var newgo = UnityEngine.Object.Instantiate(redCubePrefab, parent);
+            // var newTF = newgo.transform;
+
+            Vector3 midPos = (srcPos_+dstPos_) * 0.5f;
+            float len = (srcPos_-dstPos_).magnitude;
+
+            tf_.position = midPos;
+            helpTF.position = dstPos_;
+            tf_.LookAt( helpTF );
+
+            tf_.localScale = new Vector3( 0.01f, 0.01f, len );
+        }
+
+
+
+
     }
 }

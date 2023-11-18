@@ -33,24 +33,29 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
         public bool AllowDoubleJump = false;
         public bool AllowWallJump = false;
         public float JumpSpeed = 10f;
-        public float JumpPreGroundingGraceTime = 0f;
-        public float JumpPostGroundingGraceTime = 0f;
+        public float JumpPreGroundingGraceTime = 0f;  //  (Grace Time 宽限时间)
+        public float JumpPostGroundingGraceTime = 0f; // 
 
         [Header("Misc")]
         public Vector3 Gravity = new Vector3(0, -30f, 0);
         public Transform MeshRoot;
 
 
-        private Vector3 _moveInputVector;
-        private Vector3 _lookInputVector;
+        private Vector3 _moveInputVector; // 玩家输入的 本帧 前进方向 (xz平面版)  归一化了
+        private Vector3 _lookInputVector; // 相机的 本帧 观察方向 (xz平面版) 归一化了
+
+
         private bool _jumpRequested = false;
-        private bool _jumpConsumed = false;
-        private bool _jumpedThisFrame = false;
-        private float _timeSinceJumpRequested = Mathf.Infinity;
+        private bool _jumpConsumed = false; // 跳跃消耗, 其实就是 计时器 = 1, false 表示没跳, true 表示跳了一次 (以此来支持 二段跳) 
+        private bool _jumpedThisFrame = false; // 本帧是否 起跳了
+        private float _timeSinceJumpRequested = Mathf.Infinity; // 起跳后计时的时间
         private float _timeSinceLastAbleToJump = 0f;
         private bool _doubleJumpConsumed = false;
-        private bool _canWallJump = false;
+        private bool _canWallJump = false; // 是否进入 可以墙跳的状态
         private Vector3 _wallJumpNormal;
+
+
+
 
         private void Start()
         {
@@ -180,7 +185,14 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
 
                     // See if we actually are allowed to jump
                     if (_canWallJump ||
-                        (!_jumpConsumed && ((AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime)))
+                        ( 
+                            !_jumpConsumed && 
+                            ( 
+                                (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) ||  // 要么在斜坡上滑动的时候跳, 要么在地面上跳
+                                _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime
+                            ) 
+                        )
+                    )
                     {
                         // Calculate jump direction before ungrounding
                         Vector3 jumpDirection = Motor.CharacterUp;
@@ -188,7 +200,7 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
                         {
                             jumpDirection = _wallJumpNormal;
                         }
-                        else if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround)
+                        else if (Motor.GroundingStatus.FoundAnyGround && !Motor.GroundingStatus.IsStableOnGround) // 陡峭的斜坡
                         {
                             jumpDirection = Motor.GroundingStatus.GroundNormal;
                         }
@@ -198,6 +210,8 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
                         Motor.ForceUnground(0.1f);
 
                         // Add to the return velocity and reset jump state
+                        // 减掉的是 沿着 CharacterUp 轴线的运动分量; 
+                        // 或者说, 先让原运动 在 CharacterUp 方向的分量归零,  然后再叠加 跳跃速度
                         currentVelocity += (jumpDirection * JumpSpeed) - Vector3.Project(currentVelocity, Motor.CharacterUp);
                         _jumpRequested = false;
                         _jumpConsumed = true;

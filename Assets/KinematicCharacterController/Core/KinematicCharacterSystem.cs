@@ -6,7 +6,10 @@ using UnityEngine;
 namespace KinematicCharacterController
 {
     /// <summary>
-    /// The system that manages the simulation of KinematicCharacterMotor and PhysicsMover
+    ///             The system that manages the simulation of KinematicCharacterMotor and PhysicsMover
+    ///             当场景中启用了 KinematicCharacterMotor 或 PhysicsMover 组件, 会自动在场景中新建一个 本组件实例go
+    ///             本质上是个 singleton
+    ///
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public class KinematicCharacterSystem : MonoBehaviour
@@ -120,11 +123,16 @@ namespace KinematicCharacterController
             _instance = this;
         }
 
+
+        /*
+            源码中, 此处为 FixedUpdate, 皮卡丘将它改成了 Update()
+        */
+        //private void Update()
         private void FixedUpdate()
         {
             if (Settings.AutoSimulation)
             {
-                float deltaTime = Time.deltaTime;
+                float deltaTime = Time.deltaTime; // 不管是在 Update() 还是 FixedUpdate() 中, Time.deltaTime 都代表对于的 时间间隔
 
                 if (Settings.Interpolate)
                 {
