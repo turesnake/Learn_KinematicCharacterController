@@ -4,6 +4,8 @@ using UnityEngine;
 using KinematicCharacterController;
 using KinematicCharacterController.Examples;
 
+using KinematicCharacterController;
+
 namespace KinematicCharacterController.Walkthrough.WallJumping
 {
     public class MyPlayer : MonoBehaviour
@@ -28,6 +30,9 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
             // Ignore the character's collider(s) for camera obstruction checks
             OrbitCamera.IgnoredColliders.Clear();
             OrbitCamera.IgnoredColliders.AddRange(Character.GetComponentsInChildren<Collider>());
+
+
+            //KinematicCharacterSystem.Settings.Interpolate = false;
         }
 
         private void Update()

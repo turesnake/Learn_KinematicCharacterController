@@ -33,8 +33,17 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
         public bool AllowDoubleJump = false;
         public bool AllowWallJump = false;
         public float JumpSpeed = 10f;
+
+
+        // the extra time before landing where you can press jump and it’ll still jump once you land 
+        // -- 在你落地前的 N秒, 在此期间按下的跳跃 依然有效, 会在你落地后触发跳跃
         public float JumpPreGroundingGraceTime = 0f;  //  (Grace Time 宽限时间)
-        public float JumpPostGroundingGraceTime = 0f; // 
+
+
+        // the extra time after leaving stable ground where you’ll still be allowed to jump 
+        // -- 在你离开 稳定地面 后的 N秒内, 你依然可以触发跳跃
+        public float JumpPostGroundingGraceTime = 0f;
+
 
         [Header("Misc")]
         public Vector3 Gravity = new Vector3(0, -30f, 0);
@@ -45,11 +54,17 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
         private Vector3 _lookInputVector; // 相机的 本帧 观察方向 (xz平面版) 归一化了
 
 
+        // 玩家按下跳跃键, 发出的 跳跃指令, 此值被设为 true, 然后等待被处理:
+        // -1- 当前 角色在 斜坡/稳定地面 上 这种可跳状态; 或 角色刚离开 斜坡/稳定地面 一小段时间, 依然支持跳;  此时代码会接手处理这个跳跃指令, 立马将它置 false
+        // -2- 当前 角色并不满足 -1- 中的条件, 无法处理这次跳跃; 此值会被留置, 若未来几帧玩家再次进入 可跳状态, 还是能继续接手处理此指令;  但若等待时间过久, 此指令就会被销毁
         private bool _jumpRequested = false;
+
         private bool _jumpConsumed = false; // 跳跃消耗, 其实就是 计时器 = 1, false 表示没跳, true 表示跳了一次 (以此来支持 二段跳) 
         private bool _jumpedThisFrame = false; // 本帧是否 起跳了
-        private float _timeSinceJumpRequested = Mathf.Infinity; // 起跳后计时的时间
-        private float _timeSinceLastAbleToJump = 0f;
+        private float _timeSinceJumpRequested = Mathf.Infinity; // 玩家发出跳跃指令后, 开始计时; 直到后面某一帧玩家接手处理这个指令, 或因为等太久了这个指令被清理掉
+
+        
+        private float _timeSinceLastAbleToJump = 0f; // 只要处于可跳状态, 本值始终为 0, 脱离可跳状态后, 此值开始计时, 直到下次再次进入可跳区域
         private bool _doubleJumpConsumed = false;
         private bool _canWallJump = false; // 是否进入 可以墙跳的状态
         private Vector3 _wallJumpNormal;
@@ -65,6 +80,7 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
 
         /// <summary>
         /// This is called every frame by MyPlayer in order to tell the character what its inputs are
+        ///  在 excute order = 0 的 Update() 中被调用, 保证一定在 K Update() 之前;
         /// </summary>
         public void SetInputs(ref PlayerCharacterInputs inputs)
         {
@@ -189,7 +205,7 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
                             !_jumpConsumed && 
                             ( 
                                 (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) ||  // 要么在斜坡上滑动的时候跳, 要么在地面上跳
-                                _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime
+                                _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime // 在你离开 (斜坡/稳定地面) 的一段时间内, 你依然可以触发跳跃
                             ) 
                         )
                     )
@@ -233,24 +249,31 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
             // Handle jump-related values
             {
                 // Handle jumping pre-ground grace period
+                // 如果玩家发起跳跃指令后, 角色不在可跳状态, 这个指令就会被留置; 在之后的数帧内, 只要角色回到可跳状态, 都能回来继续处理这个指令;
+                // 但时间一旦超出界限, 这个跳跃指令就会被清除
                 if (_jumpRequested && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
                 {
                     _jumpRequested = false;
                 }
 
-                if (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround)
+                if (AllowJumpingWhenSliding ? Motor.GroundingStatus.FoundAnyGround : Motor.GroundingStatus.IsStableOnGround) 
                 {
+                    // ----- 要么在斜坡上滑动, 要么在地面上  -----
+                    // 这些场合都支持跳跃;  只要某一帧符合这些条件, 就会将 跳跃相关的数据重置:
+
                     // If we're on a ground surface, reset jumping values
-                    if (!_jumpedThisFrame)
+                    if (!_jumpedThisFrame) // 本帧不在跳
                     {
                         _doubleJumpConsumed = false;
                         _jumpConsumed = false;
                     }
-                    _timeSinceLastAbleToJump = 0f;
+                    _timeSinceLastAbleToJump = 0f; // 已经准备好 迎接跳跃指令了
                 }
                 else
                 {
-                    // Keep track of time since we were last able to jump (for grace period)
+                    // ----- 在空中 -----
+
+                    // Keep track of time since we were last able to jump ( for grace period 为了配合 JumpPostGroundingGraceTime 的使用 )
                     _timeSinceLastAbleToJump += deltaTime;
                 }
             }
@@ -267,7 +290,7 @@ namespace KinematicCharacterController.Walkthrough.WallJumping
 
         public void OnMovementHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
         {
-            // We can wall jump only if we are not stable on ground and are moving against an obstruction
+            // We can wall jump only if we are not stable on ground and are moving against an obstruction (在障碍物上移动)
             if (AllowWallJump && !Motor.GroundingStatus.IsStableOnGround && !hitStabilityReport.IsStable)
             {
                 _canWallJump = true;

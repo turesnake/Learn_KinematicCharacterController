@@ -268,6 +268,10 @@ namespace KinematicCharacterController.Walkthrough.LandingLeavingGround
         {
         }
 
+
+        /// <summary>
+        /// This is called after the motor has finished its ground probing, but before PhysicsMover/Velocity/etc.... handling
+        /// </summary>
         public void PostGroundingUpdate(float deltaTime)
         {
             // Handle landing and leaving ground

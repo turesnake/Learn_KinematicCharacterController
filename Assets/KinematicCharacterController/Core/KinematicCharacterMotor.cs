@@ -118,7 +118,7 @@ namespace KinematicCharacterController
     /// </summary>
     public struct HitStabilityReport
     {
-        public bool IsStable;
+        public bool IsStable; // 如果碰到陡峭的斜坡上, 此值为 false
 
         public bool FoundInnerNormal;
         public Vector3 InnerNormal;
@@ -677,7 +677,8 @@ namespace KinematicCharacterController
         }
 
         /// <summary>
-        /// Returns all the state information of the motor that is pertinent for simulation
+        /// Returns all the state information of the motor that is pertinent 直接相关的 for simulation
+        ///  !!! 
         /// </summary>
         public KinematicCharacterMotorState GetState()
         {
@@ -700,6 +701,7 @@ namespace KinematicCharacterController
 
         /// <summary>
         /// Applies a motor state instantly
+        /// !!! 
         /// </summary>
         public void ApplyState(KinematicCharacterMotorState state, bool bypassInterpolation = true)
         {
