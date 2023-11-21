@@ -127,9 +127,10 @@ namespace KinematicCharacterController
         /*
             源码中, 此处为 FixedUpdate, 皮卡丘将它改成了 Update()
         */
-        //private void Update()
-        private void FixedUpdate()
+        private void Update()
+        //private void FixedUpdate()
         {
+            // 用户也可将 AutoSimulation 设为 false, 从而切为手动模式; 此时用户需自行在 某 update() 中调用 Simulate() 函数;
             if (Settings.AutoSimulation)
             {
                 float deltaTime = Time.deltaTime; // 不管是在 Update() 还是 FixedUpdate() 中, Time.deltaTime 都代表对于的 时间间隔
@@ -148,6 +149,7 @@ namespace KinematicCharacterController
             }
         }
 
+
         private void LateUpdate()
         {
             if (Settings.Interpolate)
@@ -155,6 +157,7 @@ namespace KinematicCharacterController
                 CustomInterpolationUpdate();
             }
         }
+
 
         /// <summary>
         /// Remembers the point to interpolate from for KinematicCharacterMotors and PhysicsMovers
@@ -185,8 +188,10 @@ namespace KinematicCharacterController
             }
         }
 
+
+
         /// <summary>
-        /// Ticks characters and/or movers
+        /// Ticks(记账) characters and/or movers
         /// </summary>
         public static void Simulate(float deltaTime, List<KinematicCharacterMotor> motors, List<PhysicsMover> movers)
         {
@@ -203,7 +208,7 @@ namespace KinematicCharacterController
             // Character controller update phase 1
             for (int i = 0; i < characterMotorsCount; i++)
             {
-                motors[i].UpdatePhase1(deltaTime);
+                motors[i].UpdatePhase1(deltaTime); // !!! === M ===
             }
 
             // Simulate PhysicsMover displacement
@@ -221,12 +226,14 @@ namespace KinematicCharacterController
             {
                 KinematicCharacterMotor motor = motors[i];
 
-                motor.UpdatePhase2(deltaTime);
+                motor.UpdatePhase2(deltaTime); // !!! === M ===
 
                 motor.Transform.SetPositionAndRotation(motor.TransientPosition, motor.TransientRotation);
             }
 #pragma warning restore 0162
         }
+
+
 
         /// <summary>
         /// Initiates the interpolation for KinematicCharacterMotors and PhysicsMovers

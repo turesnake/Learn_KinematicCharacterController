@@ -18,6 +18,9 @@ namespace KinematicCharacterController.Walkthrough.LandingLeavingGround
         private const string HorizontalInput = "Horizontal";
         private const string VerticalInput = "Vertical";
 
+
+        int frameCount = 0;
+
         private void Start()
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -32,6 +35,20 @@ namespace KinematicCharacterController.Walkthrough.LandingLeavingGround
 
         private void Update()
         {
+
+            frameCount++;
+            if( frameCount == 10 )
+            {
+                var Interpolate = KinematicCharacterSystem.Settings.Interpolate;
+                Debug.Log( "Interpolate = " + Interpolate );
+
+                //KinematicCharacterSystem.Settings.Interpolate = false;
+                //Debug.Log( "Interpolate = " + KinematicCharacterSystem.Settings.Interpolate );
+
+            }
+
+
+
             if (Input.GetMouseButtonDown(0))
             {
                 Cursor.lockState = CursorLockMode.Locked;

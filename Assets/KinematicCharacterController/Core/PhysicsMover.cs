@@ -5,8 +5,9 @@ using UnityEngine;
 
 namespace KinematicCharacterController
 {
+
     /// <summary>
-    /// Represents the entire state of a PhysicsMover that is pertinent for simulation.
+    /// Represents the entire state of a PhysicsMover that is pertinent(有关的) for simulation.
     /// Use this to save state or revert to past state
     /// </summary>
     [System.Serializable]
@@ -17,6 +18,7 @@ namespace KinematicCharacterController
         public Vector3 Velocity;
         public Vector3 AngularVelocity;
     }
+
 
     /// <summary>
     /// Component that manages the movement of moving kinematic rigidbodies for
@@ -66,27 +68,39 @@ namespace KinematicCharacterController
         /// Index of this motor in KinematicCharacterSystem arrays
         /// </summary>
         public int IndexInCharacterSystem { get; set; }
+
         /// <summary>
         /// Remembers initial position before all simulation are done
+        /// !!! 留给 KMotor 使用:
         /// </summary>
         public Vector3 Velocity { get; protected set; }
+
         /// <summary>
         /// Remembers initial position before all simulation are done
+        /// !!! 角速度; 留给 KMotor 使用:
         /// </summary>
         public Vector3 AngularVelocity { get; protected set; }
+
+
         /// <summary>
         /// Remembers initial position before all simulation are done
+        /// 供 Interpolation 使用的 暂存值 
         /// </summary>
         public Vector3 InitialTickPosition { get; set; }
         /// <summary>
         /// Remembers initial rotation before all simulation are done
+        /// 供 Interpolation 使用的 暂存值 
         /// </summary>
         public Quaternion InitialTickRotation { get; set; }
+
+
 
         /// <summary>
         /// The mover's Transform
         /// </summary>
         public Transform Transform { get; private set; }
+
+
         /// <summary>
         /// The character's position before the movement calculations began
         /// </summary>
@@ -96,10 +110,11 @@ namespace KinematicCharacterController
         /// </summary>
         public Quaternion InitialSimulationRotation { get; private set; }
 
-        private Vector3 _internalTransientPosition;
 
+
+        private Vector3 _internalTransientPosition;
         /// <summary>
-        /// The mover's rotation (always up-to-date during the character update phase)
+        /// The mover's rotation (always up-to-date (最新的) during the character update phase)
         /// </summary>
         public Vector3 TransientPosition
         {
@@ -113,9 +128,10 @@ namespace KinematicCharacterController
             }
         }
 
+
         private Quaternion _internalTransientRotation;
         /// <summary>
-        /// The mover's rotation (always up-to-date during the character update phase)
+        /// The mover's rotation (always up-to-date (最新的) during the character update phase)
         /// </summary>
         public Quaternion TransientRotation
         {
@@ -130,6 +146,7 @@ namespace KinematicCharacterController
         }
 
 
+
         private void Reset()
         {
             ValidateData();
@@ -141,18 +158,18 @@ namespace KinematicCharacterController
         }
 
         /// <summary>
-        /// Handle validating all required values
+        /// Handle validating all required values -- 处理验证所有必需值
         /// </summary>
         public void ValidateData()
         {
             Rigidbody = gameObject.GetComponent<Rigidbody>();
-
             Rigidbody.centerOfMass = Vector3.zero;
             Rigidbody.maxAngularVelocity = Mathf.Infinity;
             Rigidbody.maxDepenetrationVelocity = Mathf.Infinity;
-            Rigidbody.isKinematic = true;
+            Rigidbody.isKinematic = true;                           // 这个物体变成 运动刚体, 它的运动不再受到物理引擎的控制, 而是可由用户管理
             Rigidbody.interpolation = RigidbodyInterpolation.None;
         }
+
 
         private void OnEnable()
         {
@@ -244,15 +261,20 @@ namespace KinematicCharacterController
         /// </summary>
         public void VelocityUpdate(float deltaTime)
         {
+            // 缓存:
             InitialSimulationPosition = TransientPosition;
             InitialSimulationRotation = TransientRotation;
 
+            // 由用户改写
+            // 得到新的 TransientPosition, TransientRotation;
             MoverController.UpdateMovement(out _internalTransientPosition, out _internalTransientRotation, deltaTime);
 
+            // 计算 速度, 角速度:
             if (deltaTime > 0f)
             {
+                // 留给 KMotor 使用:
                 Velocity = (TransientPosition - InitialSimulationPosition) / deltaTime;
-                                
+                // 角速度, 留给 KMotor 使用:            
                 Quaternion rotationFromCurrentToGoal = TransientRotation * (Quaternion.Inverse(InitialSimulationRotation));
                 AngularVelocity = (Mathf.Deg2Rad * rotationFromCurrentToGoal.eulerAngles) / deltaTime;
             }
