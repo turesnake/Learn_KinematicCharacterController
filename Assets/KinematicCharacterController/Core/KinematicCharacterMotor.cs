@@ -122,8 +122,16 @@ namespace KinematicCharacterController
         }
     }
 
+
     /// <summary>
-    /// Contains all the information from a hit stability evaluation -- 碰撞稳定性评估
+    ///              Contains all the information from a hit stability evaluation -- 碰撞稳定性评估 
+    ///              !! 爬楼梯的核心:
+    ///              想象角色踩在一级 楼梯台阶 的边缘处; 胶囊体下半球某个点与台阶边缘相接; 这个点就是 hit点,               
+    ///              从 hit点朝外(远离角色) 一小段距离 就是 out;  朝内一小段距离 就是 inn;
+    /// 
+    /// 
+    /// 
+    /// 
     /// </summary>
     public struct HitStabilityReport
     {
@@ -131,23 +139,45 @@ namespace KinematicCharacterController
         // 若 _solveGrounding 设为 false, 此值将始终为 false
         public bool IsStable; 
 
-        public bool FoundInnerNormal;
+        // 从 hitPoint 向内(靠近角色)微移一段距离, 然后再微抬高一点距离, 从此向下打射线(某段距离内), 查看是否能命中物体; 
+        // 若能打中, 说明角色脚下有地面, 可以移动下来, 而不是掉落下来(暂猜)
+        public bool FoundInnerNormal;   
         public Vector3 InnerNormal;
+
+        // 从 hitPoint 向外(远离角色)微移一段距离, 然后再微抬高一点距离, 从此向下打射线(某段距离内), 查看是否能命中物体; 
+        // 若能打中, 意味着 本次hit对象是个类似台阶的东西; 可以跨上去(暂猜)
         public bool FoundOuterNormal;
         public Vector3 OuterNormal;
 
         public bool ValidStepDetected;
         public Collider SteppedCollider;
 
-        // ledge: 凸缘, 角色可以在上面行走的 窄木条, 所以存在 "稳定性" 
+        // ledge: 当 inn地面稳定性 和 out地面稳定性 不一致时, 此值为 true 
+        // -- out 是缓坡, inn 是陡坡或空地
+        // -- inn 是缓坡, out 是陡坡
+        // 测试表明, 当 out 是高墙, 此值为 false ..
         public bool LedgeDetected;
+
+        // 角色站在一个台阶边缘, 它out测的高台阶是个缓坡, inn测的低台阶不是缓坡; 
+        // (看起来就像是 角色站在悬崖边, 且脚尖前是缓坡, 脚下却是空的 )
         public bool IsOnEmptySideOfLedge;
+
+        // hit点 到 角色 下半球球心的 向量, 投影在 角色up平面上, 得到的距离
         public float DistanceFromLedge;
+
+        // 角色踩在台阶边缘上, inn为低阶, out为高台阶; 此时如果角色朝着 inn 方向走, 本值就为 true; 
+        // 正如它的字面意思: 角色正走向 台阶边缘的 空区;
         public bool IsMovingTowardsEmptySideOfLedge;
+
+        // 如果 out地面是缓坡, 就记录 out地面的法线, 否则记录 inn地面的法线;
         public Vector3 LedgeGroundNormal;
         public Vector3 LedgeRightDirection;
+
+        // 方向: 角色打向 hit点, (inn 打向 out 点)
         public Vector3 LedgeFacingDirection;
     }
+
+
 
     /// <summary>
     /// Contains the information of hit rigidbodies during the movement phase, so they can be processed afterwards
@@ -262,7 +292,7 @@ namespace KinematicCharacterController
 
         [Header("Ledge settings")]
         /// <summary>
-        /// Handles properly detecting ledge information and grounding status, but has a performance cost.  -- 凸缘 和高差处理
+        /// Handles properly detecting ledge information and grounding status, but has a performance cost.  -- 是否处理 台阶边缘 status 和 着陆 status
         /// </summary>
         [Tooltip("Handles properly detecting ledge information and grounding status, but has a performance cost.")]
         public bool LedgeAndDenivelationHandling = true;
@@ -608,7 +638,7 @@ namespace KinematicCharacterController
         public const float SweepProbingBackstepDistance = 0.002f; // 执行 capsule cast 检测时, 会先将 capsule 后撤一小步, 然后再超目标方向 cast; 本值就是这个微小的后撤步距离
 
         public const float SecondaryProbesVertical = 0.02f;
-        public const float SecondaryProbesHorizontal = 0.001f;
+        public const float SecondaryProbesHorizontal = 0.001f; // origin:0.001ff
 
         public const float MinVelocityMagnitude = 0.01f;
         public const float SteppingForwardDistance = 0.03f;
@@ -851,8 +881,10 @@ namespace KinematicCharacterController
 
 
             var line_1tf = VisualDebug.Instance.CreateLine( "Line_1", Color.red );
+            var line_2tf = VisualDebug.Instance.CreateLine( "Line_2", Color.blue );
+            var line_3tf = VisualDebug.Instance.CreateLine( "Line_3", Color.green );
 
-            VisualDebug.Instance.DrawLine( line_1tf, new Vector3(0f,0f,0f), new Vector3(0f,5f,0f), 0.1f );
+            //VisualDebug.Instance.DrawLine( "Line_2", new Vector3(0f,0f,0f), new Vector3(0f,5f,0f), 0.1f );
 
         }
 
@@ -1320,7 +1352,8 @@ namespace KinematicCharacterController
 
 
         /// <summary>
-        /// Determines if motor can be considered stable on given slope normal
+        ///  Determines if motor can be considered stable on given slope normal 
+        ///   
         /// </summary>
         private bool IsStableWithSpecialCases(ref HitStabilityReport stabilityReport, Vector3 velocity)
         {
@@ -2197,8 +2230,8 @@ namespace KinematicCharacterController
                     ledgeCheckHeight = MaxStepHeight;
                 }
 
-                bool isStableLedgeInner = false;
-                bool isStableLedgeOuter = false;
+                bool isStableLedgeInner = false; // 若检测到 inn地面, inn地面 是否为缓坡 
+                bool isStableLedgeOuter = false; // 若检测到 out地面, out地面 是否为缓坡 
 
                 if (CharacterCollisionsRaycast( // !!! cur
                         hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * SecondaryProbesHorizontal),
@@ -2207,11 +2240,25 @@ namespace KinematicCharacterController
                         out RaycastHit innerLedgeHit,
                         _internalCharacterHits) > 0)
                 {
+                    TextDebug.SetText( 1, "inn - true" );
+                    VisualDebug.Instance.DrawLine( 
+                        "Line_1", 
+                        hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * SecondaryProbesHorizontal),
+                        -atCharacterUp,
+                        ledgeCheckHeight + SecondaryProbesVertical,
+                        0.05f 
+                    );
+
                     Vector3 innerLedgeNormal = innerLedgeHit.normal;
                     stabilityReport.InnerNormal = innerLedgeNormal;
                     stabilityReport.FoundInnerNormal = true;
                     isStableLedgeInner = IsStableOnNormal(innerLedgeNormal);
                 }
+                else 
+                {
+                    TextDebug.SetText( 1, "---" );
+                }
+                
 
                 if (CharacterCollisionsRaycast(
                         hitPoint + (atCharacterUp * SecondaryProbesVertical) + (-innerHitDirection * SecondaryProbesHorizontal),
@@ -2220,10 +2267,23 @@ namespace KinematicCharacterController
                         out RaycastHit outerLedgeHit,
                         _internalCharacterHits) > 0)
                 {
+                    TextDebug.SetText( 2, "out - true" );
+                    VisualDebug.Instance.DrawLine( 
+                        "Line_2", 
+                        hitPoint + (atCharacterUp * SecondaryProbesVertical) + (-innerHitDirection * SecondaryProbesHorizontal),
+                        -atCharacterUp,
+                        ledgeCheckHeight + SecondaryProbesVertical,
+                        0.05f 
+                    );
+
                     Vector3 outerLedgeNormal = outerLedgeHit.normal;
                     stabilityReport.OuterNormal = outerLedgeNormal;
                     stabilityReport.FoundOuterNormal = true;
                     isStableLedgeOuter = IsStableOnNormal(outerLedgeNormal);
+                }
+                else 
+                {
+                    TextDebug.SetText( 2, "---" );
                 }
 
                 stabilityReport.LedgeDetected = (isStableLedgeInner != isStableLedgeOuter);

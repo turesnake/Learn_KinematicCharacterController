@@ -4,19 +4,21 @@ using UnityEngine;
 
 
 
+/*
 
 
+*/
 
 
 public class VisualDebug : MonoSingleton<VisualDebug>
 {
 
-    //public Transform baseCubePrefab;
-
     Dictionary<string, Transform> entities = new Dictionary<string, Transform>();
 
 
     Vector3 farPos = new Vector3( 999f, 999f, 0f );
+
+    public Color defaultColor = Color.red; 
 
 
     void Start()
@@ -25,9 +27,7 @@ public class VisualDebug : MonoSingleton<VisualDebug>
     }
 
 
-    // ------------------------------------
-
-
+    // ------------------ Public ------------------
     public Transform CreateLine( string name_, Color color_ )
     {
         if( entities.ContainsKey(name_) )
@@ -40,6 +40,9 @@ public class VisualDebug : MonoSingleton<VisualDebug>
         var tf = newgo.transform;
         tf.SetParent(transform, false);
         tf.position = farPos;
+
+        Collider collider = tf.GetComponent<Collider>();
+        Destroy(collider);
         //--
         ChangeColor( tf, color_ );
         entities.Add( name_, tf );
@@ -48,12 +51,52 @@ public class VisualDebug : MonoSingleton<VisualDebug>
 
 
     // 设置一个 cube 杆子的 形状
+    public void DrawLine( string name_, Vector3 fromPos_, Vector3 toPos_, float radius_ ) 
+    {
+        if( entities.ContainsKey(name_) == false )
+        {
+            Debug.Log("不存在目标 line, 临时新建一个");
+            CreateLine( name_, defaultColor );
+        }   
+        var tf = entities[name_];
+        DrawLine( tf, fromPos_, toPos_, radius_ );
+    }
     public void DrawLine( Transform tf_, Vector3 fromPos_, Vector3 toPos_, float radius_ ) 
     {
+        tf_.gameObject.SetActive(true);
         Vector3 midPos = (fromPos_ + toPos_) * 0.5f;
         tf_.position = midPos;
         tf_.LookAt( toPos_, Vector3.up );
         tf_.localScale = new Vector3( radius_, radius_, (toPos_ - fromPos_).magnitude ); 
+    }
+
+
+    public void DrawLine( string name_, Vector3 fromPos_, Vector3 direction_, float len_,  float radius_ ) 
+    {
+        if( entities.ContainsKey(name_) == false )
+        {
+            Debug.Log("不存在目标 line, 临时新建一个");
+            CreateLine( name_, defaultColor );
+        }   
+        var tf = entities[name_];
+        DrawLine( tf, fromPos_, direction_, len_, radius_ );
+    }
+    public void DrawLine( Transform tf_, Vector3 fromPos_, Vector3 direction_, float len_,  float radius_ ) 
+    {
+        tf_.gameObject.SetActive(true);
+
+        var pos1 = fromPos_;
+        var pos2 = fromPos_ + direction_ * len_;
+        DrawLine( tf_, pos1, pos2, radius_ );
+    }
+
+
+
+
+
+    public void Hide( Transform tf_)
+    {
+        tf_.gameObject.SetActive(false);
     }
 
 

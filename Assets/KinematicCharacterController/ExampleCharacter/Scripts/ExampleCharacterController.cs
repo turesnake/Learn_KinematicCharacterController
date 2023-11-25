@@ -508,10 +508,16 @@ namespace KinematicCharacterController.Examples
 
         public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
         {
+            string log = "Ground- LedgeDetected = " + hitStabilityReport.LedgeDetected;
+            Debug.Log( log );
+            TextDebug.SetText( 4, log );
         }
 
         public void OnMovementHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
         {
+            string log = "Movement- LedgeDetected = " + hitStabilityReport.LedgeDetected;
+            //Debug.Log( log );
+            TextDebug.SetText( 5, log );
         }
 
         public void AddVelocity(Vector3 velocity)
@@ -528,6 +534,9 @@ namespace KinematicCharacterController.Examples
 
         public void ProcessHitStabilityReport(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, Vector3 atCharacterPosition, Quaternion atCharacterRotation, ref HitStabilityReport hitStabilityReport)
         {
+            string log = "ProcessHitStabilityReport= LedgeDetected = " + hitStabilityReport.LedgeDetected;
+            //Debug.Log( log );
+            TextDebug.SetText( 6, log );
         }
 
         protected void OnLanded()

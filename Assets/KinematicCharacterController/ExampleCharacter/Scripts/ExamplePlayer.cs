@@ -17,6 +17,8 @@ namespace KinematicCharacterController.Examples
         private const string HorizontalInput = "Horizontal";
         private const string VerticalInput = "Vertical";
 
+        bool isActive = true;
+
         private void Start()
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -36,6 +38,11 @@ namespace KinematicCharacterController.Examples
                 Cursor.lockState = CursorLockMode.Locked;
             }
 
+            if( Input.GetKeyDown(KeyCode.Escape) )
+            {
+                isActive = !isActive;
+            }
+
             HandleCharacterInput();
         }
 
@@ -48,7 +55,11 @@ namespace KinematicCharacterController.Examples
                 CharacterCamera.PlanarDirection = Vector3.ProjectOnPlane(CharacterCamera.PlanarDirection, Character.Motor.CharacterUp).normalized;
             }
 
-            HandleCameraInput();
+            if(isActive)
+            {
+                HandleCameraInput();
+            }
+            //HandleCameraInput();
         }
 
         private void HandleCameraInput()
