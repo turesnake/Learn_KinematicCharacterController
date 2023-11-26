@@ -24352,7 +24352,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: a1fb5ad061b41ec4f88dee5615c25a82, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.6000002
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: a1fb5ad061b41ec4f88dee5615c25a82, type: 3}
       propertyPath: m_LocalScale.y
@@ -30066,14 +30066,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1477484566}
-  m_LocalRotation: {x: 0.10810399, y: -0.37172058, z: 0.6995287, w: -0.6006638}
+  m_LocalRotation: {x: 0.690349, y: -0.6952045, z: 0.15635203, w: 0.12515192}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1070076040}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 22.966002, y: -319.514, z: -90.128006}
+  m_LocalEulerAnglesHint: {x: 22.966, y: -182.606, z: -90.128}
 --- !u!108 &1477484568
 Light:
   m_ObjectHideFlags: 0
@@ -44800,7 +44800,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6508550501183087756}
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.70710677}
-  m_LocalPosition: {x: -50.61, y: 0.08, z: 24.09}
+  m_LocalPosition: {x: -49.56, y: 0.08, z: 22.16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -45057,13 +45057,13 @@ MonoBehaviour:
   CapsuleYOffset: 1
   CapsulePhysicsMaterial: {fileID: 0}
   GroundDetectionExtraDistance: 0
-  MaxStableSlopeAngle: 48.3
+  MaxStableSlopeAngle: 52.8
   StableGroundLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   DiscreteCollisionEvents: 1
   StepHandling: 2
-  MaxStepHeight: 0.3
+  MaxStepHeight: 0.5
   AllowSteppingWithoutStableGrounding: 0
   MinRequiredStepDepth: 0.1
   LedgeAndDenivelationHandling: 1

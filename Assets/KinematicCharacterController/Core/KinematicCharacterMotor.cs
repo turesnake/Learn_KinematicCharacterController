@@ -57,6 +57,7 @@ namespace KinematicCharacterController
 
     /// <summary>
     /// Describes an overlap between the character capsule and another collider -- 
+    /// 
     /// </summary>
     public struct OverlapResult
     {
@@ -141,12 +142,16 @@ namespace KinematicCharacterController
 
         // 从 hitPoint 向内(靠近角色)微移一段距离, 然后再微抬高一点距离, 从此向下打射线(某段距离内), 查看是否能命中物体; 
         // 若能打中, 说明角色脚下有地面, 可以移动下来, 而不是掉落下来(暂猜)
-        public bool FoundInnerNormal;   
+        public bool FoundInnerNormal;  
+
+        // 若 FoundInnerNormal == false, 本值为 innHitPos->角色下半球球心
         public Vector3 InnerNormal;
 
         // 从 hitPoint 向外(远离角色)微移一段距离, 然后再微抬高一点距离, 从此向下打射线(某段距离内), 查看是否能命中物体; 
         // 若能打中, 意味着 本次hit对象是个类似台阶的东西; 可以跨上去(暂猜)
         public bool FoundOuterNormal;
+
+        // 若 FoundInnerNormal == false, 本值为 outHitPos->角色下半球球心
         public Vector3 OuterNormal;
 
         public bool ValidStepDetected;
@@ -160,6 +165,9 @@ namespace KinematicCharacterController
 
         // 角色站在一个台阶边缘, 它out测的高台阶是个缓坡, inn测的低台阶不是缓坡; 
         // (看起来就像是 角色站在悬崖边, 且脚尖前是缓坡, 脚下却是空的 )
+        // ---
+        // 实践: 当角色踩在一个大台阶边缘, out侧是缓坡, inn侧是悬崖 or 陡坡, 此时本值为 true
+        // 实践: 当角色踩在一个横圆木边缘, 此时本值为 false
         public bool IsOnEmptySideOfLedge;
 
         // hit点 到 角色 下半球球心的 向量, 投影在 角色up平面上, 得到的距离
@@ -171,6 +179,8 @@ namespace KinematicCharacterController
 
         // 如果 out地面是缓坡, 就记录 out地面的法线, 否则记录 inn地面的法线;
         public Vector3 LedgeGroundNormal;
+
+        // 鉴于 KCC 的 cross()错误尿性, 此变量很可能指向 left... 
         public Vector3 LedgeRightDirection;
 
         // 方向: 角色打向 hit点, (inn 打向 out 点)
@@ -302,11 +312,15 @@ namespace KinematicCharacterController
         /// </summary>    
         [Tooltip("The distance from the capsule central axis at which the character can stand on a ledge and still be stable")]
         public float MaxStableDistanceFromLedge = 0.5f;
+
+
         /// <summary>
-        /// Prevents snapping to ground on ledges beyond a certain velocity
+        /// Prevents snapping to ground on ledges beyond a certain velocity 
+        /// 此值变大后, 就算从 大尺寸台阶上下来, 也不会变成 "空中抛物线运动", 而是像下楼梯一样贴着地面下来
         /// </summary>    
         [Tooltip("Prevents snapping to ground on ledges beyond a certain velocity")]
         public float MaxVelocityForLedgeSnap = 0f;
+
         /// <summary>
         /// The maximun downward slope angle change that the character can be subjected to and still be snapping to the ground  -- 角色可以承受并仍然捕捉到地面的最大向下倾斜角度变化
         /// </summary>    
@@ -425,10 +439,12 @@ namespace KinematicCharacterController
         private Vector3 _transientPosition;
 
         /// <summary>
-        /// The character's up direction (always up-to-date (最新的) during the character update phase)
+        /// The character's up direction (always up-to-date (最新的) during the character update phase) 
+        ///  貌似仅在 TransientRotation 中会被改写
         /// </summary>
         public Vector3 CharacterUp { get { return _characterUp; } }
         private Vector3 _characterUp;
+
         /// <summary>
         /// The character's forward direction (always up-to-date (最新的) during the character update phase)
         /// </summary>
@@ -596,7 +612,8 @@ namespace KinematicCharacterController
         private Quaternion _transientRotation;
         /// <summary>
         /// The character's goal rotation in its movement calculations (always up-to-date (最新的) during the character update phase)
-        /// 瞬态 rotation
+        /// 瞬态 rotation 
+        /// 
         /// </summary>
         public Quaternion TransientRotation
         {
@@ -634,16 +651,16 @@ namespace KinematicCharacterController
         public const float CollisionOffset = 0.01f; // 未避免真的碰到(相切) 而留的微小间隙
         public const float GroundProbeReboundDistance = 0.02f;
         public const float MinimumGroundProbingDistance = 0.005f;
-        public const float GroundProbingBackstepDistance = 0.1f;
+        public const float GroundProbingBackstepDistance = 0.1f; //  执行 capsule cast 对地检测时, 会先将 capsule 向上移动一小步, 然后再向下 cast; 本值就是这个微小的后撤步距离
         public const float SweepProbingBackstepDistance = 0.002f; // 执行 capsule cast 检测时, 会先将 capsule 后撤一小步, 然后再超目标方向 cast; 本值就是这个微小的后撤步距离
 
         public const float SecondaryProbesVertical = 0.02f;
-        public const float SecondaryProbesHorizontal = 0.001f; // origin:0.001ff
+        public const float SecondaryProbesHorizontal = 0.001f; // origin:0.001f
 
         public const float MinVelocityMagnitude = 0.01f;
         public const float SteppingForwardDistance = 0.03f;
         public const float MinDistanceForLedge = 0.05f;
-        public const float CorrelationForVerticalObstruction = 0.01f;
+        public const float CorrelationForVerticalObstruction = 0.01f; // 垂直 障碍物 的相关性
         public const float ExtraSteppingForwardDistance = 0.01f;
         public const float ExtraStepHeightPadding = 0.01f;
 #pragma warning restore 0414 
@@ -880,11 +897,11 @@ namespace KinematicCharacterController
             // ===================== tpr ==========================
 
 
-            var line_1tf = VisualDebug.Instance.CreateLine( "Line_1", Color.red );
-            var line_2tf = VisualDebug.Instance.CreateLine( "Line_2", Color.blue );
-            var line_3tf = VisualDebug.Instance.CreateLine( "Line_3", Color.green );
+            var Line_HitStablility_Inner    = VisualDebug.Instance.CreateLine( "Line_HitStablility_Inner", Color.red );
+            var Line_HitStablility_Outer    = VisualDebug.Instance.CreateLine( "Line_HitStablility_Outer", Color.blue );
+            var line_3tf                    = VisualDebug.Instance.CreateLine( "Line_3", Color.green );
 
-            //VisualDebug.Instance.DrawLine( "Line_2", new Vector3(0f,0f,0f), new Vector3(0f,5f,0f), 0.1f );
+            var Line_HitNormal_A            = VisualDebug.Instance.CreateLine( "Line_HitNormal_A", Color.yellow );
 
         }
 
@@ -902,6 +919,7 @@ namespace KinematicCharacterController
         /// </summary>
         public void UpdatePhase1(float deltaTime)
         {
+
             // NaN propagation safety stop
             if (float.IsNaN(this.BaseVelocity.x) || float.IsNaN(this.BaseVelocity.y) || float.IsNaN(this.BaseVelocity.z))
             {
@@ -937,6 +955,7 @@ namespace KinematicCharacterController
 
             // 外部必须调用 MoveCharacter() 才能触发这段代码:
             #region Handle Move Position
+            // todo: 此段暂时没走:
             if (this._movePositionDirty)
             {
                 if (_solveMovementCollisions)
@@ -964,12 +983,16 @@ namespace KinematicCharacterController
             GroundingStatus = new CharacterGroundingReport();
             GroundingStatus.GroundNormal = _characterUp;
 
+
+            // 这段处理 所有和 角色capsule 相交的 colliders;
+            // 针对每个 overlap, 角色会主动后退一段距离来解除相交; 并把每个 overlap 信息记录下来
             if (_solveMovementCollisions)
             {
                 #region Resolve initial overlaps
                 Vector3 resolutionDirection = _cachedWorldUp;
                 float resolutionDistance = 0f;
                 int iterationsMade = 0;
+
                 bool overlapSolved = false;
                 while (iterationsMade < MaxDecollisionIterations && !overlapSolved)
                 {
@@ -982,22 +1005,29 @@ namespace KinematicCharacterController
                         {
                             if (GetInteractiveRigidbody(this._internalProbedColliders[i]) == null)
                             {
+                                // 当这个 collider 要么不是 rigidbody, 要么是 运动刚体(代码控制) 
+                                // 此时需要下方代码 手动解开 碰撞体相交(overlap): 
+
                                 // Process overlap
                                 Transform overlappedTransform = this._internalProbedColliders[i].GetComponent<Transform>();
+                                // 判断两个 collider 是否相互内嵌, 如果是, 则可使用本函数来得知 相嵌信息, 进而可以将 它们 回退到相切的状态 (不内嵌);
                                 if (Physics.ComputePenetration(
+                                        // --- A:
                                         Capsule,
                                         this._transientPosition,
                                         this._transientRotation,
+                                        // --- A:
                                         this._internalProbedColliders[i],
                                         overlappedTransform.position,
                                         overlappedTransform.rotation,
-                                        out resolutionDirection,
+                                        // ---
+                                        out resolutionDirection, // 方向: B->A
                                         out resolutionDistance))
                                 {
                                     // Resolve along obstruction direction
                                     HitStabilityReport mockReport = new HitStabilityReport();
                                     mockReport.IsStable = IsStableOnNormal(resolutionDirection);
-                                    resolutionDirection = GetObstructionNormal(resolutionDirection, mockReport.IsStable);
+                                    resolutionDirection = GetObstructionNormal(resolutionDirection, mockReport.IsStable);                                  
 
                                     // Solve overlap
                                     Vector3 resolutionMovement = resolutionDirection * (resolutionDistance + CollisionOffset);
@@ -1025,19 +1055,24 @@ namespace KinematicCharacterController
                 #endregion
             }
 
-            #region Ground Probing and Snapping
+
+            #region Ground Probing and Snapping 
             // Handle ungrounding
             if (_solveGrounding)
             {
                 if (MustUnground())
                 {
+                    // --- 当前要求 角色"不接地", 比如准备跳跃时: ---
+
                     this._transientPosition += _characterUp * (MinimumGroundProbingDistance * 1.5f);
                 }
                 else
                 {
+                    // --- 当前要求 角色"接地": ---
+
                     // Choose the appropriate ground probing distance
                     float selectedGroundProbingDistance = MinimumGroundProbingDistance;
-                    if (!LastGroundingStatus.SnappingPrevented && (LastGroundingStatus.IsStableOnGround || this.LastMovementIterationFoundAnyGround))
+                    if (!LastGroundingStatus.SnappingPrevented && (LastGroundingStatus.IsStableOnGround || this.LastMovementIterationFoundAnyGround))  
                     {
                         if (StepHandling != StepHandlingMethod.None)
                         {
@@ -1051,18 +1086,22 @@ namespace KinematicCharacterController
                         selectedGroundProbingDistance += GroundDetectionExtraDistance;
                     }
 
-                    ProbeGround(ref this._transientPosition, this._transientRotation, selectedGroundProbingDistance, ref GroundingStatus);
 
+                    ProbeGround(ref this._transientPosition, this._transientRotation, selectedGroundProbingDistance, ref GroundingStatus); 
+
+                    // 上帧没找到地面, 本帧找到了
                     if (!LastGroundingStatus.IsStableOnGround && GroundingStatus.IsStableOnGround)
                     {
                         // Handle stable landing
-                        this.BaseVelocity = Vector3.ProjectOnPlane(this.BaseVelocity, CharacterUp);
+                        this.BaseVelocity = Vector3.ProjectOnPlane(this.BaseVelocity, CharacterUp);  
                         this.BaseVelocity = GetDirectionTangentToSurface(this.BaseVelocity, GroundingStatus.GroundNormal) * this.BaseVelocity.magnitude;
                     }
                 }
             }
 
-            this.LastMovementIterationFoundAnyGround = false;
+
+
+            this.LastMovementIterationFoundAnyGround = false;  // !!! cur 
 
             if (_mustUngroundTimeCounter > 0f)
             {
@@ -1364,6 +1403,7 @@ namespace KinematicCharacterController
                     if (stabilityReport.IsMovingTowardsEmptySideOfLedge)
                     {
                         // Max snap vel
+                        // 当角色从 高台阶飞出时 (out->inn), 如果运动速度太快, 将不再贴地运动, 而是变成抛物线运动;
                         Vector3 velocityOnLedgeNormal = Vector3.Project(velocity, stabilityReport.LedgeFacingDirection);
                         if (velocityOnLedgeNormal.magnitude >= MaxVelocityForLedgeSnap)
                         {
@@ -1401,9 +1441,13 @@ namespace KinematicCharacterController
         }
 
         /// <summary>
-        /// Probes for valid ground and midifies the input transientPosition if ground snapping occurs
+        /// Probes for valid ground and midifies the input transientPosition if ground snapping occurs 
+        ///  整个过程会迭代多次, 不停地下探, 并把 参数 probingPosition 放到新的位置, 然后调整方向继续下探, 直到找到一个缓坡当作地面; 或者啥也没找到
+        /// 
+        /// 参数 groundingReport 会保留最后一次 hit 的相关信息;
+        /// 
         /// </summary>
-        public void ProbeGround(ref Vector3 probingPosition, Quaternion atRotation, float probingDistance, ref CharacterGroundingReport groundingReport)
+        public void ProbeGround(ref Vector3 probingPosition, Quaternion atRotation, float probingDistance, ref CharacterGroundingReport groundingReport) 
         {
             if (probingDistance < MinimumGroundProbingDistance)
             {
@@ -1414,19 +1458,26 @@ namespace KinematicCharacterController
             RaycastHit groundSweepHit = new RaycastHit();
             bool groundSweepingIsOver = false;
             Vector3 groundSweepPosition = probingPosition;
-            Vector3 groundSweepDirection = (atRotation * -_cachedWorldUp);
+            Vector3 groundSweepDirection = (atRotation * -_cachedWorldUp); // 朝向 角色down 方向;
             float groundProbeDistanceRemaining = probingDistance;
-            while (groundProbeDistanceRemaining > 0 && (groundSweepsMade <= MaxGroundingSweepIterations) && !groundSweepingIsOver)
+
+
+            while ( groundProbeDistanceRemaining > 0 && (groundSweepsMade <= MaxGroundingSweepIterations) && !groundSweepingIsOver ) 
             {
                 // Sweep for ground detection
-                if (CharacterGroundSweep(
+                if (CharacterGroundSweep( 
                         groundSweepPosition, // position
                         atRotation, // rotation
                         groundSweepDirection, // direction
                         groundProbeDistanceRemaining, // distance
-                        out groundSweepHit)) // hit
+                        out groundSweepHit)) // hit -- 本次查出的 距离最近的 hit;
                 {
+                    // 若地面是斜的, 则 hit点不在 角色capsule 正下方, 而是下半球面某点上; 此时 角色下半球->hit点 是个斜的方向; (不是垂直向下)
+                    // 但本变量只是让 角色垂直向下运动一段距离, 这么运动完后, 角色能与 本次斜坡 紧密相切; 但此时 targetPosition 并不是 hit点(groundSweepHit.point)
+                    // 简单说, 只有当 地面完全水平时, targetPosition 和 groundSweepHit.point 才相同
                     Vector3 targetPosition = groundSweepPosition + (groundSweepDirection * groundSweepHit.distance);
+
+
                     HitStabilityReport groundHitStabilityReport = new HitStabilityReport();
                     EvaluateHitStability(groundSweepHit.collider, groundSweepHit.normal, groundSweepHit.point, targetPosition, this._transientRotation, this.BaseVelocity, ref groundHitStabilityReport);
 
@@ -1442,21 +1493,25 @@ namespace KinematicCharacterController
                     if (groundHitStabilityReport.IsStable)
                     {
                         // Find all scenarios where ground snapping should be canceled
-                        groundingReport.SnappingPrevented = !IsStableWithSpecialCases(ref groundHitStabilityReport, this.BaseVelocity);
+                        groundingReport.SnappingPrevented = !IsStableWithSpecialCases(ref groundHitStabilityReport, this.BaseVelocity);// !!! cur
 
                         groundingReport.IsStableOnGround = true;  // 说明 角色正稳稳地踩在地上
 
+                        // *** "地面吸附" 执行处:
                         // Ground snapping
                         if (!groundingReport.SnappingPrevented)
                         {
                             probingPosition = groundSweepPosition + (groundSweepDirection * (groundSweepHit.distance - CollisionOffset));
                         }
 
+                        // ** 执行到这里就意味着找到了一个有效的 地面, 也即将离开本函数了:
                         CharacterController.OnGroundHit(groundSweepHit.collider, groundSweepHit.normal, groundSweepHit.point, ref groundHitStabilityReport); // !!!-I
                         groundSweepingIsOver = true;
                     }
                     else
                     {
+                        // ----- 说明本次hit 不是一个可以当作 地面的平面, 还需准备一下继续下一次迭代;
+
                         // Calculate movement from this iteration and advance position
                         Vector3 sweepMovement = (groundSweepDirection * groundSweepHit.distance) + ((atRotation * _cachedWorldUp) * Mathf.Max(CollisionOffset, groundSweepHit.distance));
                         groundSweepPosition = groundSweepPosition + sweepMovement;
@@ -1465,6 +1520,7 @@ namespace KinematicCharacterController
                         groundProbeDistanceRemaining = Mathf.Min(GroundProbeReboundDistance, Mathf.Max(groundProbeDistanceRemaining - sweepMovement.magnitude, 0f));
 
                         // Reorient direction
+                        // 因为本次发现了 hit, 故原来的下探方向要被修正, 沿着 本次hit阻挡面的切方向继续下探
                         groundSweepDirection = Vector3.ProjectOnPlane(groundSweepDirection, groundSweepHit.normal).normalized;
                     }
                 }
@@ -1476,6 +1532,8 @@ namespace KinematicCharacterController
                 groundSweepsMade++;
             }
         }
+
+
 
         /// <summary>
         /// Forces the character to unground itself on its next grounding update
@@ -1650,12 +1708,12 @@ namespace KinematicCharacterController
                     remainingMovementMagnitude -= sweepMovement.magnitude;
 
                     // Evaluate if hit is stable
-                    HitStabilityReport moveHitStabilityReport = new HitStabilityReport(); // !!! cur
+                    HitStabilityReport moveHitStabilityReport = new HitStabilityReport(); 
                     EvaluateHitStability(closestSweepHitCollider, closestSweepHitNormal, closestSweepHitPoint, tmpMovedPosition, this._transientRotation, transientVelocity, ref moveHitStabilityReport);
 
                     // Handle stepping up steps points higher than bottom capsule radius
                     bool foundValidStepHit = false;
-                    if (_solveGrounding && StepHandling != StepHandlingMethod.None && moveHitStabilityReport.ValidStepDetected)
+                    if (_solveGrounding && StepHandling != StepHandlingMethod.None && moveHitStabilityReport.ValidStepDetected) // !!! cur
                     {
                         float obstructionCorrelation = Mathf.Abs(Vector3.Dot(closestSweepHitNormal, _characterUp));
                         if (obstructionCorrelation <= CorrelationForVerticalObstruction)
@@ -1777,7 +1835,7 @@ namespace KinematicCharacterController
             // Find hit/obstruction/offset normal
             Vector3 obstructionNormal = hitNormal;
 
-            // 若: -1-角色站在稳定地面上, -2-角色处于"接地"状态, -3- hitNormal 不是一个可稳定站上去的平面 
+            // 若: -1-角色站在稳定地面上, -2-角色处于"接地"状态, -3- hitNormal 不是缓坡
             // 这意味着 角色在地面上移动时撞到了一个 遮挡物, 需算出这个遮挡物 拒止角色运动的 平面的法线;
             if (GroundingStatus.IsStableOnGround && !MustUnground() && !stableOnHit)
             {
@@ -2203,8 +2261,12 @@ namespace KinematicCharacterController
         /// <summary> // !!! cur
         /// Determines if the motor is considered stable on a given hit
         /// </summary>
-        public void EvaluateHitStability(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, Vector3 atCharacterPosition, Quaternion atCharacterRotation, Vector3 withCharacterVelocity, ref HitStabilityReport stabilityReport)
-        {
+        public void EvaluateHitStability(Collider hitCollider, Vector3 hitNormal, 
+            Vector3 hitPoint,               // hit点
+            Vector3 atCharacterPosition,    // 角色capsule 底部点 pos; 只有当 hitCollider 是个水平地面时, 此值才和 hitPoint 相同
+            Quaternion atCharacterRotation, Vector3 withCharacterVelocity, ref HitStabilityReport stabilityReport
+        ){
+
             if (!_solveGrounding)
             {
                 stabilityReport.IsStable = false;
@@ -2233,21 +2295,22 @@ namespace KinematicCharacterController
                 bool isStableLedgeInner = false; // 若检测到 inn地面, inn地面 是否为缓坡 
                 bool isStableLedgeOuter = false; // 若检测到 out地面, out地面 是否为缓坡 
 
-                if (CharacterCollisionsRaycast( // !!! cur
+                if (CharacterCollisionsRaycast(
                         hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * SecondaryProbesHorizontal),
                         -atCharacterUp,
                         ledgeCheckHeight + SecondaryProbesVertical,
                         out RaycastHit innerLedgeHit,
                         _internalCharacterHits) > 0)
                 {
+                    // todo: debug:
                     TextDebug.SetText( 1, "inn - true" );
-                    VisualDebug.Instance.DrawLine( 
-                        "Line_1", 
-                        hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * SecondaryProbesHorizontal),
-                        -atCharacterUp,
-                        ledgeCheckHeight + SecondaryProbesVertical,
-                        0.05f 
-                    );
+                    // VisualDebug.Instance.DrawLine( 
+                    //     "Line_HitStablility_Inner", 
+                    //     hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * 0.08f),
+                    //     -atCharacterUp,
+                    //     ledgeCheckHeight + SecondaryProbesVertical,
+                    //     0.05f 
+                    // );
 
                     Vector3 innerLedgeNormal = innerLedgeHit.normal;
                     stabilityReport.InnerNormal = innerLedgeNormal;
@@ -2256,6 +2319,7 @@ namespace KinematicCharacterController
                 }
                 else 
                 {
+                    // todo: debug:
                     TextDebug.SetText( 1, "---" );
                 }
                 
@@ -2267,14 +2331,15 @@ namespace KinematicCharacterController
                         out RaycastHit outerLedgeHit,
                         _internalCharacterHits) > 0)
                 {
+                    // todo: debug:
                     TextDebug.SetText( 2, "out - true" );
-                    VisualDebug.Instance.DrawLine( 
-                        "Line_2", 
-                        hitPoint + (atCharacterUp * SecondaryProbesVertical) + (-innerHitDirection * SecondaryProbesHorizontal),
-                        -atCharacterUp,
-                        ledgeCheckHeight + SecondaryProbesVertical,
-                        0.05f 
-                    );
+                    // VisualDebug.Instance.DrawLine( 
+                    //     "Line_HitStablility_Outer", 
+                    //     hitPoint + (atCharacterUp * SecondaryProbesVertical) + (-innerHitDirection * 0.08f),
+                    //     -atCharacterUp,
+                    //     ledgeCheckHeight + SecondaryProbesVertical,
+                    //     0.05f 
+                    // );
 
                     Vector3 outerLedgeNormal = outerLedgeHit.normal;
                     stabilityReport.OuterNormal = outerLedgeNormal;
@@ -2283,8 +2348,31 @@ namespace KinematicCharacterController
                 }
                 else 
                 {
+                    // todo: debug:
                     TextDebug.SetText( 2, "---" );
                 }
+
+
+                // todo: debug:
+                //TextDebug.SetText( 1, "inn - true" );
+                VisualDebug.Instance.DrawLine( 
+                    "Line_HitStablility_Inner", 
+                    hitPoint + (atCharacterUp * SecondaryProbesVertical) + (innerHitDirection * 0.08f),
+                    stabilityReport.InnerNormal,
+                    ledgeCheckHeight + SecondaryProbesVertical,
+                    0.05f 
+                );
+
+
+                // todo: debug:
+                //TextDebug.SetText( 2, "out - true" );
+                VisualDebug.Instance.DrawLine( 
+                    "Line_HitStablility_Outer", 
+                    hitPoint + (atCharacterUp * SecondaryProbesVertical) + (-innerHitDirection * 0.08f),
+                    stabilityReport.OuterNormal,
+                    ledgeCheckHeight + SecondaryProbesVertical,
+                    0.05f 
+                );
 
                 stabilityReport.LedgeDetected = (isStableLedgeInner != isStableLedgeOuter);
                 if (stabilityReport.LedgeDetected)
@@ -2532,9 +2620,12 @@ namespace KinematicCharacterController
         }
 
         /// <summary>
-        /// Determines if a collider has an attached interactive rigidbody
+        /// Determines if a collider has an attached interactive rigidbody 
+        ///    以下情况返回 true:
+        ///       -1- 参数 onCollider 是 rigidbody 且是 PhysicsMover
+        ///       -2- 参数 onCollider 是 rigidbody 且是 常规刚体 (物理引擎控制)
         /// </summary>
-        private Rigidbody GetInteractiveRigidbody(Collider onCollider)
+        private Rigidbody GetInteractiveRigidbody(Collider onCollider) // see__
         {
             Rigidbody colliderAttachedRigidbody = onCollider.attachedRigidbody;
             if (colliderAttachedRigidbody)
@@ -2551,6 +2642,7 @@ namespace KinematicCharacterController
             }
             return null;
         }
+
 
         /// <summary>
         /// Calculates the velocity required to move the character to the target position over a specific deltaTime.
@@ -2813,10 +2905,12 @@ namespace KinematicCharacterController
         }
 
         /// <summary>
-        /// Casts the character volume in the character's downward direction to detect ground
+        /// Casts the character volume in the character's downward direction to detect ground 
+        /// 将 角色capsule 向下 cast 一段距离, 找到最近的 hit, 将相关数据回传;
+        /// 
         /// </summary>
         /// <returns> Returns the number of hits </returns>
-        private bool CharacterGroundSweep(Vector3 position, Quaternion rotation, Vector3 direction, float distance, out RaycastHit closestHit)
+        private bool CharacterGroundSweep(Vector3 position, Quaternion rotation, Vector3 direction, float distance, out RaycastHit closestHit) // see__
         {
             closestHit = new RaycastHit();
 
