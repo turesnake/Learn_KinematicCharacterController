@@ -551,6 +551,7 @@ namespace KinematicCharacterController.Examples
 
         public void OnDiscreteCollisionDetected(Collider hitCollider)
         {
+            //print("Discrete Collision -- " + hitCollider.name );
         }
     }
 }

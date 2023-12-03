@@ -61,7 +61,14 @@ namespace KinematicCharacterController
 
 
         /// <summary>
-        /// This is called when the character detects discrete collisions (collisions that don't result from the motor's capsuleCasts when moving)
+        /// This is called when the character detects discrete collisions (collisions that don't result from the motor's capsuleCasts when moving) 
+        ///  通过此函数, 用户能知道每次 update() 结束时, 角色紧密相挨着的 collider 有哪些, (比如地面,墙面等)
+        ///  -----
+        ///  细节:
+        ///  在每次 update() 的最后时刻, 角色完成了旋转和移动, 在最终pos上, 再做一次 capsule overlaps 检测, 同时把 充气值做大点;
+        ///  这样就能把所有和 角色紧密贴在一起的 collider 检测出来, 比如地面, 墙面等;
+        ///  在每一帧, 每检测出一个这样的 collider, 本函数就会被调用一次;
+        ///  
         /// </summary>
         void OnDiscreteCollisionDetected(Collider hitCollider);     // !!! UpdatePhase=2 -6- 
     }
