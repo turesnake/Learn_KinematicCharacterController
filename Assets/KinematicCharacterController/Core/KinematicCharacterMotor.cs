@@ -2861,7 +2861,7 @@ namespace KinematicCharacterController
 
         /// <summary>
         /// Sweeps the capsule's volume to detect collision hits
-        ///  把角色 capsule collider 沿着参数 direction cast 一段距离(长度就是 direction 的模), 得到所有 hit;
+        ///  把角色 capsule collider 沿着参数 direction 投射 一段距离(长度就是 direction 的模), 得到所有 hit;
         ///  去掉所有无效 hit, 将有效 hit 排列在  参数容器 hits 前区;  
         ///  将距离最近的一个 hit实例 存入参数 closestHit; 
         ///  返回 所有有效 hit 的数量;
